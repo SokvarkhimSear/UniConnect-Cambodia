@@ -6,7 +6,7 @@ import { useAuth } from '../AuthContext';
 
 export function Navbar({ lang, toggleLanguage }: { lang: Language, toggleLanguage: () => void }) {
   const t = (key: keyof typeof dict['en']) => dict[lang][key];
-  const { user, isAdmin, login, logout, loading } = useAuth();
+  const { user, isAdmin, openAuthModal, logout, loading } = useAuth();
 
   return (
     <nav className="sticky top-0 z-50 bg-natural-bg/90 backdrop-blur-md border-b border-natural-border">
@@ -56,7 +56,7 @@ export function Navbar({ lang, toggleLanguage }: { lang: Language, toggleLanguag
                   </button>
                 ) : (
                   <button 
-                    onClick={login}
+                    onClick={openAuthModal}
                     className="flex items-center gap-2 px-4 py-2 sm:py-2.5 rounded-full bg-natural-accent-red text-white hover:bg-natural-accent-red-hover transition-colors font-bold text-sm"
                   >
                     <LogIn className="w-4 h-4" />

@@ -7,6 +7,7 @@ import { Home } from './components/Home';
 import { AdminPanel } from './components/AdminPanel';
 import { UniversityDetail } from './components/UniversityDetail';
 import { AuthProvider } from './AuthContext';
+import { AuthModal } from './components/AuthModal';
 
 export default function App() {
   const [lang, setLang] = useState<Language>('en');
@@ -17,6 +18,7 @@ export default function App() {
 
   return (
     <AuthProvider>
+      <AuthModal />
       <BrowserRouter>
         <div className="min-h-screen bg-natural-bg font-sans text-natural-text-dark flex flex-col selection:bg-natural-accent-gold/20">
           <Navbar lang={lang} toggleLanguage={toggleLanguage} />

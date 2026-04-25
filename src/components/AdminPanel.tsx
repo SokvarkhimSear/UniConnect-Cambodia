@@ -120,7 +120,7 @@ export function AdminPanel() {
   };
 
   if (loading) return <div className="p-12 text-center text-natural-text-meta">Loading...</div>;
-  if (!user || !isAdmin) return <Navigate to="/" replace />; // Ensure only admin can access
+  if (!user) return <Navigate to="/" replace />; // Ensure only authenticated users can access
 
   const saveUni = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,7 +187,7 @@ export function AdminPanel() {
       await addDoc(collection(db, 'scholarships'), {
         title: scholTitle,
         content: scholContent,
-        universityId: scholUniId || 'general',
+        universityId: editingUniId || scholUniId || 'general',
         authorId: user.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -211,6 +211,7 @@ export function AdminPanel() {
         content: newsContent,
         imageUrl: newsImageUrl,
         published: newsPublished,
+        universityId: editingUniId || 'general',
         authorId: user.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -233,29 +234,37 @@ export function AdminPanel() {
         </div>
         <nav className="flex flex-col gap-2 px-4">
           <button 
-            onClick={() => setActiveTab('uni')}
+            onClick={() => { cancelEdit(); setActiveTab('uni'); }}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${(activeTab === 'uni' && !editingUniId) ? 'bg-natural-accent-red text-white' : 'text-natural-text-body hover:bg-natural-bg'}`}
           >
-            <School className="w-5 h-5" /> Add University
+             <School className="w-5 h-5" /> Add University
           </button>
           <button 
             onClick={() => setActiveTab('edit_uni')}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${(activeTab === 'edit_uni' || editingUniId) ? 'bg-natural-accent-red text-white' : 'text-natural-text-body hover:bg-natural-bg'}`}
           >
-            <School className="w-5 h-5" /> Edit University
+            <School className="w-5 h-5" /> Edit Universities
           </button>
-          <button 
-            onClick={() => setActiveTab('scholarship')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'scholarship' ? 'bg-natural-accent-red text-white' : 'text-natural-text-body hover:bg-natural-bg'}`}
-          >
-            <GraduationCap className="w-5 h-5" /> Add Scholarship
-          </button>
-          <button 
-            onClick={() => setActiveTab('news')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'news' ? 'bg-natural-accent-red text-white' : 'text-natural-text-body hover:bg-natural-bg'}`}
-          >
-            <Newspaper className="w-5 h-5" /> Add News
-          </button>
+          
+          {(editingUniId || ['uni', 'scholarship', 'news'].includes(activeTab)) && (
+            <div className="mt-4 flex flex-col gap-2">
+              <div className="px-4 py-2 text-[10px] font-bold text-natural-text-meta uppercase tracking-wider">
+                {editingUniId ? `For ${uniName || 'University'}` : 'Options'}
+              </div>
+              <button 
+                onClick={() => setActiveTab('scholarship')}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'scholarship' ? 'bg-natural-accent-red text-white' : 'text-natural-text-body hover:bg-natural-bg'}`}
+              >
+                <GraduationCap className="w-5 h-5" /> Add Scholarship
+              </button>
+              <button 
+                onClick={() => setActiveTab('news')}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${activeTab === 'news' ? 'bg-natural-accent-red text-white' : 'text-natural-text-body hover:bg-natural-bg'}`}
+              >
+                <Newspaper className="w-5 h-5" /> Add News
+              </button>
+            </div>
+          )}
         </nav>
       </div>
 

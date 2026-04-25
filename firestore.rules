@@ -43,34 +43,36 @@ service cloud.firestore {
 
     // Validation - Article
     function isValidArticle(data) {
-      return data.size() == 7 &&
-             data.keys().hasAll(['title', 'content', 'imageUrl', 'authorId', 'published', 'createdAt', 'updatedAt']) &&
+      return data.size() == 8 &&
+             data.keys().hasAll(['title', 'content', 'imageUrl', 'authorId', 'published', 'universityId', 'createdAt', 'updatedAt']) &&
              data.title is string && data.title.size() <= 1000 &&
              data.content is string && data.content.size() <= 100000 &&
              data.imageUrl is string && data.imageUrl.size() <= 500000 &&
              data.authorId is string && data.authorId.size() <= 128 && data.authorId == request.auth.uid &&
              data.published is bool &&
+             data.universityId is string && data.universityId.size() <= 128 &&
              data.createdAt == request.time &&
              data.updatedAt == request.time;
     }
 
     function isUpdateValidArticle() {
-      let allowedKeys = ['title', 'content', 'imageUrl', 'published', 'updatedAt'];
+      let allowedKeys = ['title', 'content', 'imageUrl', 'published', 'universityId', 'updatedAt'];
       let diff = incoming().diff(existing()).affectedKeys();
       return diff.hasOnly(allowedKeys) &&
              incoming().updatedAt == request.time &&
              ( !('title' in diff) || (incoming().title is string && incoming().title.size() <= 1000) ) &&
              ( !('content' in diff) || (incoming().content is string && incoming().content.size() <= 100000) ) &&
              ( !('imageUrl' in diff) || (incoming().imageUrl is string && incoming().imageUrl.size() <= 500000) ) &&
-             ( !('published' in diff) || (incoming().published is bool) );
+             ( !('published' in diff) || (incoming().published is bool) ) &&
+             ( !('universityId' in diff) || (incoming().universityId is string && incoming().universityId.size() <= 128) );
     }
 
     match /articles/{articleId} {
-      allow read: if (existing().published == true) || isAdmin();
-      allow list: if (resource.data.published == true) || isAdmin();
-      allow create: if isAdmin() && isValidArticle(incoming());
-      allow update: if isAdmin() && isUpdateValidArticle();
-      allow delete: if isAdmin();
+      allow read: if (existing().published == true) || isAdmin() || (isSignedIn() && existing().authorId == request.auth.uid);
+      allow list: if (resource.data.published == true) || isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
+      allow create: if isSignedIn() && isValidArticle(incoming());
+      allow update: if isSignedIn() && existing().authorId == request.auth.uid && isUpdateValidArticle();
+      allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
     }
     // Validation - University
     function isValidUniversity(data) {
@@ -119,9 +121,9 @@ service cloud.firestore {
     match /universities/{universityId} {
       allow read: if true; // Publicly readable
       allow list: if true;
-      allow create: if isAdmin() && isValidUniversity(incoming());
-      allow update: if isAdmin() && isUpdateValidUniversity();
-      allow delete: if isAdmin();
+      allow create: if isSignedIn() && isValidUniversity(incoming());
+      allow update: if isSignedIn() && existing().authorId == request.auth.uid && isUpdateValidUniversity();
+      allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
     }
 
     // Validation - Scholarship
@@ -149,9 +151,9 @@ service cloud.firestore {
     match /scholarships/{scholarshipId} {
       allow read: if true; // Publicly readable
       allow list: if true;
-      allow create: if isAdmin() && isValidScholarship(incoming());
-      allow update: if isAdmin() && isUpdateValidScholarship();
-      allow delete: if isAdmin();
+      allow create: if isSignedIn() && isValidScholarship(incoming());
+      allow update: if isSignedIn() && existing().authorId == request.auth.uid && isUpdateValidScholarship();
+      allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
     }
   }
 }

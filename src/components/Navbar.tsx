@@ -27,9 +27,9 @@ export function Navbar({ lang, toggleLanguage }: { lang: Language, toggleLanguag
           
           <div className="hidden md:flex gap-8 text-sm font-semibold uppercase tracking-widest text-natural-text-body items-center">
             <Link to="/" className="text-natural-accent-red border-b-2 border-natural-accent-red pb-1">{t('navHome')}</Link>
-            {isAdmin && (
+            {user && (
               <Link to="/admin" className="px-4 py-2 bg-natural-accent-gold text-white rounded-lg hover:bg-natural-accent-gold-hover transition-colors font-bold flex items-center gap-2">
-                <Settings className="w-4 h-4" /> Add Uni / Admin
+                <Settings className="w-4 h-4" /> Add/Edit Uni
               </Link>
             )}
           </div>

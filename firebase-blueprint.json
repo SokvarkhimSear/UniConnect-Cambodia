@@ -50,6 +50,9 @@
         "published": {
           "type": "boolean"
         },
+        "universityId": {
+          "type": "string"
+        },
         "createdAt": {
           "type": "timestamp"
         },
@@ -57,7 +60,7 @@
           "type": "timestamp"
         }
       },
-      "required": ["title", "content", "imageUrl", "authorId", "published", "createdAt", "updatedAt"]
+      "required": ["title", "content", "imageUrl", "authorId", "published", "universityId", "createdAt", "updatedAt"]
     },
     "University": {
       "title": "University",

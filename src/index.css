@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", "Noto Sans Khmer", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif: "Playfair Display", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
+  /* Natural Tones Palette */
+  --color-natural-bg: #FDFBF7;
+  --color-natural-text-dark: #2D2926;
+  --color-natural-text-heading: #4A4540;
+  --color-natural-text-body: #6B635B;
+  --color-natural-text-meta: #A39B94;
+  --color-natural-accent-red: #B32428;
+  --color-natural-accent-red-hover: #8E1C1F;
+  --color-natural-accent-gold: #D4AF37;
+  --color-natural-accent-gold-hover: #B8962E;
+  --color-natural-border: #E5E0D5;
+  --color-natural-card-bg: #FFFFFF;
+  --color-natural-muted-1: #F0EEEA;
+  --color-natural-muted-2: #F9F7F2;
+  --color-natural-footer: #F2EDE4;
+
+  /* Aliasing legacy colors for broader compatibility where needed */
+  --color-cam-blue: #D4AF37;
+  --color-cam-red: #B32428;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-natural-bg);
+  color: var(--color-natural-text-dark);
+}

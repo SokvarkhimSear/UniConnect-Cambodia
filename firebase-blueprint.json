@@ -1,0 +1,133 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user profile, storing basic information for logged-in students.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "User's email"
+        },
+        "createdAt": {
+          "type": "timestamp"
+        }
+      },
+      "required": ["email", "createdAt"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "An administrator or editor record.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Admin's email"
+        },
+        "createdAt": {
+          "type": "timestamp"
+        }
+      },
+      "required": ["email", "createdAt"]
+    },
+    "Article": {
+      "title": "Article",
+      "description": "A blog post, news update, or university information article.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "imageUrl": {
+          "type": "string"
+        },
+        "authorId": {
+          "type": "string"
+        },
+        "published": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "timestamp"
+        },
+        "updatedAt": {
+          "type": "timestamp"
+        }
+      },
+      "required": ["title", "content", "imageUrl", "authorId", "published", "createdAt", "updatedAt"]
+    },
+    "University": {
+      "title": "University",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "location": { "type": "string" },
+        "yearFounded": { "type": "string" },
+        "description": { "type": "string" },
+        "type": { "type": "string" },
+        "studentsCount": { "type": "string" },
+        "facultiesCount": { "type": "string" },
+        "majorsCount": { "type": "string" },
+        "website": { "type": "string" },
+        "applicationPeriod": { "type": "string" },
+        "languages": { "type": "string" },
+        "themeColor": { "type": "string" },
+        "majors": { "type": "string" },
+        "editCode": { "type": "string" },
+        "authorId": { "type": "string" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      },
+      "required": ["name", "logoUrl", "location", "yearFounded", "description", "type", "studentsCount", "facultiesCount", "majorsCount", "website", "applicationPeriod", "languages", "themeColor", "majors", "editCode", "authorId", "createdAt", "updatedAt"]
+    },
+    "Scholarship": {
+      "title": "Scholarship",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "universityId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      },
+      "required": ["title", "content", "universityId", "authorId", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "Stores user profiles."
+    },
+    "admins/{userId}": {
+      "schema": {
+        "$ref": "#/entities/Admin"
+      },
+      "description": "Stores admin records. Used for role checking."
+    },
+    "articles/{articleId}": {
+      "schema": {
+        "$ref": "#/entities/Article"
+      },
+      "description": "Stores articles and news."
+    },
+    "universities/{universityId}": {
+      "schema": {
+        "$ref": "#/entities/University"
+      },
+      "description": "Stores universities."
+    },
+    "scholarships/{scholarshipId}": {
+      "schema": {
+        "$ref": "#/entities/Scholarship"
+      },
+      "description": "Stores scholarships."
+    }
+  }
+}

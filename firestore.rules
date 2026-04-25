@@ -1,0 +1,158 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitives
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return request.auth.token.email_verified == true; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Validation - User Profile
+    function isValidUser(data) {
+      return data.size() == 2 &&
+             data.keys().hasAll(['email', 'createdAt']) &&
+             data.email is string && data.email.size() <= 200 &&
+             data.email == request.auth.token.email &&
+             data.createdAt == request.time;
+    }
+
+    function isUpdateValidUser() {
+      // Users should not update their profile email or createdAt
+      return incoming().diff(existing()).affectedKeys().size() == 0;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isSignedIn() && isVerified() && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if isSignedIn() && isVerified() && request.auth.uid == userId && isUpdateValidUser();
+      allow delete: if false;
+    }
+
+    // Admins Collection (only admins can read/write, except the rules check implicitly uses exists())
+    match /admins/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if false; // Only manually added in console or by a separate secure process
+    }
+
+    // Validation - Article
+    function isValidArticle(data) {
+      return data.size() == 7 &&
+             data.keys().hasAll(['title', 'content', 'imageUrl', 'authorId', 'published', 'createdAt', 'updatedAt']) &&
+             data.title is string && data.title.size() <= 1000 &&
+             data.content is string && data.content.size() <= 100000 &&
+             data.imageUrl is string && data.imageUrl.size() <= 500000 &&
+             data.authorId is string && data.authorId.size() <= 128 && data.authorId == request.auth.uid &&
+             data.published is bool &&
+             data.createdAt == request.time &&
+             data.updatedAt == request.time;
+    }
+
+    function isUpdateValidArticle() {
+      let allowedKeys = ['title', 'content', 'imageUrl', 'published', 'updatedAt'];
+      let diff = incoming().diff(existing()).affectedKeys();
+      return diff.hasOnly(allowedKeys) &&
+             incoming().updatedAt == request.time &&
+             ( !('title' in diff) || (incoming().title is string && incoming().title.size() <= 1000) ) &&
+             ( !('content' in diff) || (incoming().content is string && incoming().content.size() <= 100000) ) &&
+             ( !('imageUrl' in diff) || (incoming().imageUrl is string && incoming().imageUrl.size() <= 500000) ) &&
+             ( !('published' in diff) || (incoming().published is bool) );
+    }
+
+    match /articles/{articleId} {
+      allow read: if (existing().published == true) || isAdmin();
+      allow list: if (resource.data.published == true) || isAdmin();
+      allow create: if isAdmin() && isValidArticle(incoming());
+      allow update: if isAdmin() && isUpdateValidArticle();
+      allow delete: if isAdmin();
+    }
+    // Validation - University
+    function isValidUniversity(data) {
+      return data.size() == 18 &&
+             data.keys().hasAll(['name', 'logoUrl', 'location', 'yearFounded', 'description', 'type', 'studentsCount', 'facultiesCount', 'majorsCount', 'website', 'applicationPeriod', 'languages', 'themeColor', 'majors', 'editCode', 'authorId', 'createdAt', 'updatedAt']) &&
+             data.name is string && data.name.size() <= 200 &&
+             data.logoUrl is string && data.logoUrl.size() <= 500000 &&
+             data.location is string && data.location.size() <= 200 &&
+             data.yearFounded is string && data.yearFounded.size() <= 100 &&
+             data.description is string && data.description.size() <= 10000 &&
+             data.type is string && data.type.size() <= 50 &&
+             data.studentsCount is string && data.studentsCount.size() <= 50 &&
+             data.facultiesCount is string && data.facultiesCount.size() <= 50 &&
+             data.majorsCount is string && data.majorsCount.size() <= 50 &&
+             data.website is string && data.website.size() <= 200 &&
+             data.applicationPeriod is string && data.applicationPeriod.size() <= 200 &&
+             data.languages is string && data.languages.size() <= 200 &&
+             data.themeColor is string && data.themeColor.size() <= 50 &&
+             data.majors is string && data.majors.size() <= 2000 &&
+             data.editCode is string && data.editCode.size() <= 50 &&
+             data.authorId is string && data.authorId.size() <= 128 && data.authorId == request.auth.uid &&
+             data.createdAt == request.time &&
+             data.updatedAt == request.time;
+    }
+
+    function isUpdateValidUniversity() {
+      let allowedKeys = ['name', 'logoUrl', 'location', 'yearFounded', 'description', 'type', 'studentsCount', 'facultiesCount', 'majorsCount', 'website', 'applicationPeriod', 'languages', 'themeColor', 'majors', 'updatedAt'];
+      let diff = incoming().diff(existing()).affectedKeys();
+      return diff.hasOnly(allowedKeys) &&
+             incoming().updatedAt == request.time &&
+             ( !('name' in diff) || (incoming().name is string && incoming().name.size() <= 200) ) &&
+             ( !('logoUrl' in diff) || (incoming().logoUrl is string && incoming().logoUrl.size() <= 500000) ) &&
+             ( !('location' in diff) || (incoming().location is string && incoming().location.size() <= 200) ) &&
+             ( !('yearFounded' in diff) || (incoming().yearFounded is string && incoming().yearFounded.size() <= 100) ) &&
+             ( !('description' in diff) || (incoming().description is string && incoming().description.size() <= 10000) ) &&
+             ( !('type' in diff) || (incoming().type is string && incoming().type.size() <= 50) ) &&
+             ( !('studentsCount' in diff) || (incoming().studentsCount is string && incoming().studentsCount.size() <= 50) ) &&
+             ( !('facultiesCount' in diff) || (incoming().facultiesCount is string && incoming().facultiesCount.size() <= 50) ) &&
+             ( !('majorsCount' in diff) || (incoming().majorsCount is string && incoming().majorsCount.size() <= 50) ) &&
+             ( !('website' in diff) || (incoming().website is string && incoming().website.size() <= 200) ) &&
+             ( !('applicationPeriod' in diff) || (incoming().applicationPeriod is string && incoming().applicationPeriod.size() <= 200) ) &&
+             ( !('languages' in diff) || (incoming().languages is string && incoming().languages.size() <= 200) ) &&
+             ( !('themeColor' in diff) || (incoming().themeColor is string && incoming().themeColor.size() <= 50) ) &&
+             ( !('majors' in diff) || (incoming().majors is string && incoming().majors.size() <= 2000) );
+    }
+
+    match /universities/{universityId} {
+      allow read: if true; // Publicly readable
+      allow list: if true;
+      allow create: if isAdmin() && isValidUniversity(incoming());
+      allow update: if isAdmin() && isUpdateValidUniversity();
+      allow delete: if isAdmin();
+    }
+
+    // Validation - Scholarship
+    function isValidScholarship(data) {
+      return data.size() == 6 &&
+             data.keys().hasAll(['title', 'content', 'universityId', 'authorId', 'createdAt', 'updatedAt']) &&
+             data.title is string && data.title.size() <= 200 &&
+             data.content is string && data.content.size() <= 10000 &&
+             data.universityId is string && data.universityId.size() <= 128 &&
+             data.authorId is string && data.authorId.size() <= 128 && data.authorId == request.auth.uid &&
+             data.createdAt == request.time &&
+             data.updatedAt == request.time;
+    }
+
+    function isUpdateValidScholarship() {
+      let allowedKeys = ['title', 'content', 'universityId', 'updatedAt'];
+      let diff = incoming().diff(existing()).affectedKeys();
+      return diff.hasOnly(allowedKeys) &&
+             incoming().updatedAt == request.time &&
+             ( !('title' in diff) || (incoming().title is string && incoming().title.size() <= 200) ) &&
+             ( !('content' in diff) || (incoming().content is string && incoming().content.size() <= 10000) ) &&
+             ( !('universityId' in diff) || (incoming().universityId is string && incoming().universityId.size() <= 128) );
+    }
+
+    match /scholarships/{scholarshipId} {
+      allow read: if true; // Publicly readable
+      allow list: if true;
+      allow create: if isAdmin() && isValidScholarship(incoming());
+      allow update: if isAdmin() && isUpdateValidScholarship();
+      allow delete: if isAdmin();
+    }
+  }
+}

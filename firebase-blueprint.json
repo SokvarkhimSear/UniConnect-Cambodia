@@ -77,12 +77,11 @@
         "languages": { "type": "string" },
         "themeColor": { "type": "string" },
         "majors": { "type": "string" },
-        "editCode": { "type": "string" },
         "authorId": { "type": "string" },
         "createdAt": { "type": "timestamp" },
         "updatedAt": { "type": "timestamp" }
       },
-      "required": ["name", "logoUrl", "location", "yearFounded", "description", "type", "studentsCount", "facultiesCount", "majorsCount", "website", "applicationPeriod", "languages", "themeColor", "majors", "editCode", "authorId", "createdAt", "updatedAt"]
+      "required": ["name", "logoUrl", "location", "yearFounded", "description", "type", "studentsCount", "facultiesCount", "majorsCount", "website", "applicationPeriod", "languages", "themeColor", "majors", "authorId", "createdAt", "updatedAt"]
     },
     "Scholarship": {
       "title": "Scholarship",

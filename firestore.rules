@@ -74,8 +74,8 @@ service cloud.firestore {
     }
     // Validation - University
     function isValidUniversity(data) {
-      return data.size() == 18 &&
-             data.keys().hasAll(['name', 'logoUrl', 'location', 'yearFounded', 'description', 'type', 'studentsCount', 'facultiesCount', 'majorsCount', 'website', 'applicationPeriod', 'languages', 'themeColor', 'majors', 'editCode', 'authorId', 'createdAt', 'updatedAt']) &&
+      return data.size() == 17 &&
+             data.keys().hasAll(['name', 'logoUrl', 'location', 'yearFounded', 'description', 'type', 'studentsCount', 'facultiesCount', 'majorsCount', 'website', 'applicationPeriod', 'languages', 'themeColor', 'majors', 'authorId', 'createdAt', 'updatedAt']) &&
              data.name is string && data.name.size() <= 200 &&
              data.logoUrl is string && data.logoUrl.size() <= 500000 &&
              data.location is string && data.location.size() <= 200 &&
@@ -90,7 +90,6 @@ service cloud.firestore {
              data.languages is string && data.languages.size() <= 200 &&
              data.themeColor is string && data.themeColor.size() <= 50 &&
              data.majors is string && data.majors.size() <= 2000 &&
-             data.editCode is string && data.editCode.size() <= 50 &&
              data.authorId is string && data.authorId.size() <= 128 && data.authorId == request.auth.uid &&
              data.createdAt == request.time &&
              data.updatedAt == request.time;

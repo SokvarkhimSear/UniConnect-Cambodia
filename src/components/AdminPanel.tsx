@@ -12,26 +12,21 @@ export function AdminPanel() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
 
-  const generatedCode = React.useMemo(() => "1234", [activeTab]);
   const [editingUniId, setEditingUniId] = useState<string | null>(null);
   const [universitiesList, setUniversitiesList] = useState<any[]>([]);
 
   React.useEffect(() => {
-    if (activeTab === 'edit_uni') {
-      import('firebase/firestore').then(({ getDocs, collection }) => {
-        getDocs(collection(db, 'universities')).then(snap => {
+    if (activeTab === 'edit_uni' && user?.uid) {
+      import('firebase/firestore').then(({ getDocs, collection, query, where }) => {
+        const q = query(collection(db, 'universities'), where('authorId', '==', user.uid));
+        getDocs(q).then(snap => {
           setUniversitiesList(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         });
       });
     }
-  }, [activeTab]);
+  }, [activeTab, user?.uid]);
 
   const loadUniForEdit = (uni: any) => {
-    const code = prompt(`Enter the Edit Code for ${uni.name} (Currently defaulting to 1234):`);
-    if (code !== uni.editCode) {
-      alert("Incorrect Edit Code.");
-      return;
-    }
     setEditingUniId(uni.id);
     setUniName(uni.name || '');
     setUniLogoUrl(uni.logoUrl || '');
@@ -169,12 +164,11 @@ export function AdminPanel() {
           languages: uniLanguages,
           themeColor: uniThemeColor,
           majors: uniMajors,
-          editCode: generatedCode,
           authorId: user.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
-        alert(`University added! PLEASE SAVE THIS CODE TO EDIT LATER: ${generatedCode}`);
+        alert('University added successfully!');
         setUniName(''); setUniLogoUrl(''); setUniLocation(''); setUniYearFounded(''); setUniDesc(''); setUniType('Public');
         setUniStudents('18k+'); setUniFaculties('9'); setUniMajorsCount('18'); setUniWebsite(''); setUniAppPeriod(''); setUniLanguages(''); setUniThemeColor('#0b5c46'); setUniMajors('');
       }
@@ -397,10 +391,10 @@ export function AdminPanel() {
               <>
                 <div className="mb-8">
                   <h1 className="text-3xl font-serif font-bold text-natural-text-dark mb-2">Edit University</h1>
-                  <p className="text-natural-text-body">Select a university and enter its edit code to make changes.</p>
+                  <p className="text-natural-text-body">Select a university you published to make changes.</p>
                 </div>
                 {universitiesList.length === 0 ? (
-                  <p className="text-natural-text-meta italic">No universities found.</p>
+                  <p className="text-natural-text-meta italic">You haven't published any universities yet.</p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {universitiesList.map(u => (
@@ -419,7 +413,7 @@ export function AdminPanel() {
                           </div>
                         </div>
                         <button className="w-full text-sm font-bold bg-white border border-natural-border py-2 rounded-lg group-hover:bg-natural-accent-gold group-hover:text-white group-hover:border-natural-accent-gold transition-colors">
-                          Edit with Code
+                          Edit Profile
                         </button>
                       </div>
                     ))}

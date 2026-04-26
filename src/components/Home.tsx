@@ -82,7 +82,6 @@ export function Home({ lang }: { lang: Language }) {
       <section className="px-6 sm:px-12 py-16 sm:py-20 flex flex-col flex-1 max-w-7xl mx-auto w-full">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 gap-6">
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-natural-accent-red mb-3">Featured Partners</h2>
             <p className="text-3xl sm:text-4xl font-serif font-bold text-natural-text-heading leading-tight">
               {t('featuredUnis')}
             </p>

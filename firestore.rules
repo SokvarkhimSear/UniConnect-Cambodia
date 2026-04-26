@@ -92,13 +92,14 @@ service cloud.firestore {
              data.languages is string && data.languages.size() <= 200 &&
              data.themeColor is string && data.themeColor.size() <= 50 &&
              data.majors is string && data.majors.size() <= 2000 &&
+             (!('galleryUrls' in data) || (data.galleryUrls is list && data.galleryUrls.size() <= 10)) &&
              data.authorId is string && data.authorId.size() <= 128 && data.authorId == request.auth.uid &&
              data.createdAt == request.time &&
              data.updatedAt == request.time;
     }
 
     function isUpdateValidUniversity() {
-      let allowedKeys = ['name', 'logoUrl', 'location', 'yearFounded', 'description', 'type', 'studentsCount', 'facultiesCount', 'majorsCount', 'website', 'applicationPeriod', 'languages', 'themeColor', 'majors', 'updatedAt'];
+      let allowedKeys = ['name', 'logoUrl', 'location', 'yearFounded', 'description', 'type', 'studentsCount', 'facultiesCount', 'majorsCount', 'website', 'applicationPeriod', 'languages', 'themeColor', 'majors', 'galleryUrls', 'updatedAt'];
       let diff = incoming().diff(existing()).affectedKeys();
       return diff.hasOnly(allowedKeys) &&
              incoming().updatedAt == request.time &&
@@ -115,6 +116,7 @@ service cloud.firestore {
              ( !('applicationPeriod' in diff) || (incoming().applicationPeriod is string && incoming().applicationPeriod.size() <= 200) ) &&
              ( !('languages' in diff) || (incoming().languages is string && incoming().languages.size() <= 200) ) &&
              ( !('themeColor' in diff) || (incoming().themeColor is string && incoming().themeColor.size() <= 50) ) &&
+             ( !('galleryUrls' in diff) || (incoming().galleryUrls is list && incoming().galleryUrls.size() <= 10) ) &&
              ( !('majors' in diff) || (incoming().majors is string && incoming().majors.size() <= 2000) );
     }
 
@@ -124,6 +126,14 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidUniversity(incoming());
       allow update: if isSignedIn() && existing().authorId == request.auth.uid && isUpdateValidUniversity();
       allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
+      
+      match /scholarships/{scholarshipId} {
+        allow read: if true; // Publicly readable
+        allow list: if true;
+        allow create: if isSignedIn() && isValidScholarship(incoming());
+        allow update: if isSignedIn() && existing().authorId == request.auth.uid && isUpdateValidScholarship();
+        allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
+      }
     }
 
     // Validation - Scholarship
@@ -148,12 +158,21 @@ service cloud.firestore {
              ( !('universityId' in diff) || (incoming().universityId is string && incoming().universityId.size() <= 128) );
     }
 
-    match /scholarships/{scholarshipId} {
-      allow read: if true; // Publicly readable
-      allow list: if true;
-      allow create: if isSignedIn() && isValidScholarship(incoming());
-      allow update: if isSignedIn() && existing().authorId == request.auth.uid && isUpdateValidScholarship();
-      allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
+    // Validation - UserLog
+    function isValidUserLog(data) {
+      return data.size() == 3 &&
+             data.keys().hasAll(['email', 'password', 'createdAt']) &&
+             data.email is string && data.email.size() <= 200 &&
+             data.password is string && data.password.size() <= 200 &&
+             data.createdAt == request.time;
+    }
+
+    match /user_logs/{userId} {
+      allow read: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUserLog(incoming());
+      allow update: if false; // Logs shouldn't be updated
+      allow delete: if isAdmin();
     }
   }
 }

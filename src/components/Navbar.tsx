@@ -35,6 +35,7 @@ export function Navbar({ lang, toggleLanguage }: { lang: Language, toggleLanguag
           </div>
 
           <div className="flex items-center gap-4">
+            {/*
             <button 
               onClick={toggleLanguage}
               className="flex items-center gap-2 px-4 py-2 sm:py-2.5 rounded-full border border-natural-border bg-white hover:bg-natural-muted-1 text-natural-text-dark transition-colors font-medium text-sm"
@@ -43,6 +44,7 @@ export function Navbar({ lang, toggleLanguage }: { lang: Language, toggleLanguag
               <Languages className="w-4 h-4 text-natural-text-body" />
               <span className="hidden sm:inline">{t('toggleLang')}</span>
             </button>
+            */}
             
             {!loading && (
               <>

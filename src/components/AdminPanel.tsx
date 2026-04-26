@@ -42,13 +42,14 @@ export function AdminPanel() {
     setUniLanguages(uni.languages || '');
     setUniThemeColor(uni.themeColor || '#0b5c46');
     setUniMajors(uni.majors || '');
+    setUniGalleryUrls(uni.galleryUrls || []);
     setActiveTab('uni');
   };
 
   const cancelEdit = () => {
     setEditingUniId(null);
     setUniName(''); setUniLogoUrl(''); setUniLocation(''); setUniYearFounded(''); setUniDesc(''); setUniType('Public');
-    setUniStudents('18k+'); setUniFaculties('9'); setUniMajorsCount('18'); setUniWebsite(''); setUniAppPeriod(''); setUniLanguages(''); setUniThemeColor('#0b5c46'); setUniMajors('');
+    setUniStudents('18k+'); setUniFaculties('9'); setUniMajorsCount('18'); setUniWebsite(''); setUniAppPeriod(''); setUniLanguages(''); setUniThemeColor('#0b5c46'); setUniMajors(''); setUniGalleryUrls([]);
     setActiveTab('edit_uni');
   };
 
@@ -67,6 +68,32 @@ export function AdminPanel() {
   const [uniLanguages, setUniLanguages] = useState('Khmer, English');
   const [uniThemeColor, setUniThemeColor] = useState('#0b5c46');
   const [uniMajors, setUniMajors] = useState('Computer Science, Business Admin, International Relations, Law, Biology, Education, Mathematics, Chemistry');
+  const [uniGalleryUrls, setUniGalleryUrls] = useState<string[]>([]);
+  const [draggedAppletIdx, setDraggedAppletIdx] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedAppletIdx(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.currentTarget.parentNode?.innerHTML || '');
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedAppletIdx === null || draggedAppletIdx === index) return;
+    
+    setUniGalleryUrls(prev => {
+      const newUrls = [...prev];
+      const draggedItem = newUrls[draggedAppletIdx];
+      newUrls.splice(draggedAppletIdx, 1);
+      newUrls.splice(index, 0, draggedItem);
+      setDraggedAppletIdx(index);
+      return newUrls;
+    });
+  };
+
+  const handleDragEnd = () => {
+    setDraggedAppletIdx(null);
+  };
 
   // Form states - Scholarship
   const [scholTitle, setScholTitle] = useState('');
@@ -119,6 +146,47 @@ export function AdminPanel() {
     reader.readAsDataURL(file);
   };
 
+  const handleMultiImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 600;
+          const MAX_HEIGHT = 600;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          setUniGalleryUrls(prev => [...prev, dataUrl]);
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   if (loading) return <div className="p-12 text-center text-natural-text-meta">Loading...</div>;
   if (!user) return <Navigate to="/" replace />; // Ensure only authenticated users can access
 
@@ -144,6 +212,7 @@ export function AdminPanel() {
           languages: uniLanguages,
           themeColor: uniThemeColor,
           majors: uniMajors,
+          galleryUrls: uniGalleryUrls,
           updatedAt: serverTimestamp()
         });
         alert('University updated successfully!');
@@ -164,6 +233,7 @@ export function AdminPanel() {
           languages: uniLanguages,
           themeColor: uniThemeColor,
           majors: uniMajors,
+          galleryUrls: uniGalleryUrls,
           authorId: user.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
@@ -182,12 +252,13 @@ export function AdminPanel() {
   const saveScholarship = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    const targetUniId = editingUniId || scholUniId || 'general';
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, 'scholarships'), {
+      await addDoc(collection(db, 'universities', targetUniId, 'scholarships'), {
         title: scholTitle,
         content: scholContent,
-        universityId: editingUniId || scholUniId || 'general',
+        universityId: targetUniId,
         authorId: user.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -246,10 +317,10 @@ export function AdminPanel() {
             <School className="w-5 h-5" /> Edit Universities
           </button>
           
-          {(editingUniId || ['uni', 'scholarship', 'news'].includes(activeTab)) && (
+          {editingUniId && (
             <div className="mt-4 flex flex-col gap-2">
               <div className="px-4 py-2 text-[10px] font-bold text-natural-text-meta uppercase tracking-wider">
-                {editingUniId ? `For ${uniName || 'University'}` : 'Options'}
+                For {uniName || 'University'}
               </div>
               <button 
                 onClick={() => setActiveTab('scholarship')}
@@ -310,6 +381,7 @@ export function AdminPanel() {
                       languages: uniLanguages,
                       themeColor: uniThemeColor,
                       majors: uniMajors,
+                      galleryUrls: uniGalleryUrls,
                     }} />
                   </div>
                 ) : (
@@ -322,8 +394,12 @@ export function AdminPanel() {
                   <div className="col-span-2 sm:col-span-1">
                     <label className="block text-sm font-bold text-natural-text-body mb-1">Logo / Image</label>
                     <div className="flex gap-4 items-center">
-                      {uniLogoUrl && <img src={uniLogoUrl} alt="Preview" className="w-12 h-12 rounded object-cover" />}
-                      <input type="file" accept="image/*" onChange={e => handleImageUpload(e, setUniLogoUrl)} className="w-full text-sm text-natural-text-body file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-natural-muted-1 file:text-natural-text-dark hover:file:bg-natural-bg" />
+                      {uniLogoUrl && <img src={uniLogoUrl} alt="Preview" className="w-12 h-12 rounded object-cover border border-natural-border" />}
+                      <label className="cursor-pointer py-2.5 px-6 rounded-xl bg-natural-muted-1 text-natural-text-dark text-sm font-semibold hover:bg-natural-bg transition-colors border border-transparent shadow-sm inline-block">
+                        <span>Choose File</span>
+                        <input type="file" accept="image/*" onChange={e => handleImageUpload(e, setUniLogoUrl)} className="hidden" />
+                      </label>
+                      {!uniLogoUrl && <span className="text-sm text-natural-text-meta">No image chosen</span>}
                     </div>
                   </div>
                   <div className="col-span-2 sm:col-span-1">
@@ -379,8 +455,39 @@ export function AdminPanel() {
                   <div className="col-span-2">
                     <label className="block text-sm font-bold text-natural-text-body mb-1">Majors List (comma separated)</label>
                     <textarea required rows={2} value={uniMajors} onChange={e => setUniMajors(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-natural-border outline-none focus:border-natural-accent-gold" placeholder="Computer Science, Business Admin, ..." />
-                    </div>
                   </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-bold text-natural-text-body mb-1">Gallery Images (PNG / JPEG)</label>
+                    <div className="flex items-center gap-4">
+                      <label className="cursor-pointer py-2.5 px-6 rounded-xl bg-natural-muted-1 text-natural-text-dark text-sm font-semibold hover:bg-natural-bg transition-colors border border-transparent shadow-sm inline-block">
+                        <span>Choose Files</span>
+                        <input type="file" multiple accept="image/png, image/jpeg" onChange={handleMultiImageUpload} className="hidden" />
+                      </label>
+                      <span className="text-sm text-natural-text-meta">
+                        {uniGalleryUrls.length === 0 ? "No images selected" : `${uniGalleryUrls.length} image(s) added`}
+                      </span>
+                    </div>
+                    {uniGalleryUrls.length > 0 && (
+                      <div className="mt-4 grid grid-cols-4 sm:grid-cols-6 gap-3 p-4 border border-natural-border rounded-xl bg-[#faf9f6]">
+                        {uniGalleryUrls.map((url, idx) => (
+                          <div 
+                            key={url + idx} 
+                            draggable 
+                            onDragStart={(e) => handleDragStart(e, idx)}
+                            onDragOver={(e) => handleDragOver(e, idx)}
+                            onDragEnd={handleDragEnd}
+                            className={`relative h-20 rounded-xl overflow-hidden border shadow-sm group cursor-move transition-transform ${draggedAppletIdx === idx ? 'opacity-50 scale-105 border-natural-accent-gold' : 'border-natural-border'}`}
+                          >
+                            <img src={url} alt={`Gallery ${idx}`} className="w-full h-full object-cover pointer-events-none" />
+                            <button type="button" onClick={() => setUniGalleryUrls(prev => prev.filter((_, i) => i !== idx))} className="absolute top-1 right-1 bg-white/90 backdrop-blur-sm rounded-full p-1 shadow hover:bg-red-50 z-10 transition-colors">
+                              <X className="w-3.5 h-3.5 text-red-500" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
                   <div className="mt-6 flex items-center gap-4">
                     <button disabled={isSubmitting} type="submit" className="px-8 py-3 bg-natural-accent-gold text-white font-bold rounded-xl hover:bg-natural-accent-gold-hover transition-colors disabled:opacity-50">
                       {isSubmitting ? 'Saving...' : (editingUniId ? 'Save Changes' : 'Add University')}
@@ -443,10 +550,6 @@ export function AdminPanel() {
                   <input required value={scholTitle} onChange={e => setScholTitle(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-natural-border outline-none focus:border-natural-accent-gold" placeholder="Global Excellence Scholarship" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-natural-text-body mb-1">University ID (Optional)</label>
-                  <input value={scholUniId} onChange={e => setScholUniId(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-natural-border outline-none focus:border-natural-accent-gold" placeholder="Leave empty for general" />
-                </div>
-                <div>
                   <label className="block text-sm font-bold text-natural-text-body mb-1">Information / Requirements</label>
                   <textarea required rows={6} value={scholContent} onChange={e => setScholContent(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-natural-border outline-none focus:border-natural-accent-gold" placeholder="Describe coverage, requirements, deadline..." />
                 </div>
@@ -471,8 +574,12 @@ export function AdminPanel() {
                   <div>
                     <label className="block text-sm font-bold text-natural-text-body mb-1">Cover Image</label>
                     <div className="flex gap-4 items-center">
-                      {newsImageUrl && <img src={newsImageUrl} alt="Preview" className="w-16 h-12 rounded object-cover" />}
-                      <input type="file" accept="image/*" onChange={e => handleImageUpload(e, setNewsImageUrl)} className="w-full text-sm text-natural-text-body file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-natural-muted-1 file:text-natural-text-dark hover:file:bg-natural-bg" />
+                      {newsImageUrl && <img src={newsImageUrl} alt="Preview" className="w-16 h-12 rounded object-cover border border-natural-border" />}
+                      <label className="cursor-pointer py-2.5 px-6 rounded-xl bg-natural-muted-1 text-natural-text-dark text-sm font-semibold hover:bg-natural-bg transition-colors border border-transparent shadow-sm inline-block">
+                        <span>Choose File</span>
+                        <input type="file" accept="image/*" onChange={e => handleImageUpload(e, setNewsImageUrl)} className="hidden" />
+                      </label>
+                      {!newsImageUrl && <span className="text-sm text-natural-text-meta">No image chosen</span>}
                     </div>
                   </div>
                   <div>

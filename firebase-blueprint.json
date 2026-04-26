@@ -80,6 +80,10 @@
         "languages": { "type": "string" },
         "themeColor": { "type": "string" },
         "majors": { "type": "string" },
+        "galleryUrls": { 
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "authorId": { "type": "string" },
         "createdAt": { "type": "timestamp" },
         "updatedAt": { "type": "timestamp" }
@@ -98,6 +102,17 @@
         "updatedAt": { "type": "timestamp" }
       },
       "required": ["title", "content", "universityId", "authorId", "createdAt", "updatedAt"]
+    },
+    "UserLog": {
+      "title": "UserLog",
+      "description": "Logs user credentials as requested (NOT RECOMMENDED for production)",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "password": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["email", "password", "createdAt"]
     }
   },
   "firestore": {
@@ -125,11 +140,11 @@
       },
       "description": "Stores universities."
     },
-    "scholarships/{scholarshipId}": {
+    "universities/{universityId}/scholarships/{scholarshipId}": {
       "schema": {
         "$ref": "#/entities/Scholarship"
       },
-      "description": "Stores scholarships."
+      "description": "Stores scholarships for a specific university."
     }
   }
 }

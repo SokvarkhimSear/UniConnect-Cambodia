@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, signOut, User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
@@ -39,11 +39,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (u) {
         setIsAuthModalOpen(false); // Close modal on successful login
         try {
-          const adminDoc = await getDoc(doc(db, 'admins', u.uid));
-          setIsAdmin(adminDoc.exists());
+          const userDocRef = doc(db, 'users', u.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            setIsAdmin(userDoc.data().role === 'admin');
+          } else {
+            // Create the user profile doc if it doesn't exist
+            await setDoc(userDocRef, {
+              email: u.email,
+              role: 'student',
+              createdAt: serverTimestamp()
+            });
+            setIsAdmin(false);
+          }
         } catch (e) {
           setIsAdmin(false);
-          console.error("Not an admin or error checking admin status", e);
+          console.error("Error checking or configuring user profile", e);
         }
       } else {
         setIsAdmin(false);

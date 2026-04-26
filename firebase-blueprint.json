@@ -2,33 +2,22 @@
   "entities": {
     "User": {
       "title": "User",
-      "description": "A user profile, storing basic information for logged-in students.",
+      "description": "A user profile, storing basic information for logged-in students and admins.",
       "type": "object",
       "properties": {
         "email": {
           "type": "string",
           "description": "User's email"
         },
-        "createdAt": {
-          "type": "timestamp"
-        }
-      },
-      "required": ["email", "createdAt"]
-    },
-    "Admin": {
-      "title": "Admin",
-      "description": "An administrator or editor record.",
-      "type": "object",
-      "properties": {
-        "email": {
+        "role": {
           "type": "string",
-          "description": "Admin's email"
+          "description": "Role of the user, can be 'admin' or 'student'"
         },
         "createdAt": {
           "type": "timestamp"
         }
       },
-      "required": ["email", "createdAt"]
+      "required": ["email", "role", "createdAt"]
     },
     "Article": {
       "title": "Article",
@@ -121,12 +110,6 @@
         "$ref": "#/entities/User"
       },
       "description": "Stores user profiles."
-    },
-    "admins/{userId}": {
-      "schema": {
-        "$ref": "#/entities/Admin"
-      },
-      "description": "Stores admin records. Used for role checking."
     },
     "articles/{articleId}": {
       "schema": {

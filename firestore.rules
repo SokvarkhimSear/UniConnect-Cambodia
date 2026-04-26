@@ -10,36 +10,35 @@ service cloud.firestore {
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function isSignedIn() { return request.auth != null; }
     function isVerified() { return request.auth.token.email_verified == true; }
-    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
 
     // Validation - User Profile
     function isValidUser(data) {
-      return data.size() == 2 &&
-             data.keys().hasAll(['email', 'createdAt']) &&
+      return data.size() == 3 &&
+             data.keys().hasAll(['email', 'createdAt', 'role']) &&
              data.email is string && data.email.size() <= 200 &&
              data.email == request.auth.token.email &&
+             data.role is string && data.role == 'student' &&
              data.createdAt == request.time;
     }
 
     function isUpdateValidUser() {
       // Users should not update their profile email or createdAt
-      return incoming().diff(existing()).affectedKeys().size() == 0;
+      let diff = incoming().diff(existing()).affectedKeys();
+      // Allow only admin to update role
+      return diff.size() == 0 || (isAdmin() && diff.hasOnly(['role']) && incoming().role in ['admin', 'student']);
     }
 
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow create: if isSignedIn() && isVerified() && request.auth.uid == userId && isValidUser(incoming());
-      allow update: if isSignedIn() && isVerified() && request.auth.uid == userId && isUpdateValidUser();
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if isSignedIn() && request.auth.uid == userId && isUpdateValidUser();
       allow delete: if false;
     }
 
-    // Admins Collection (only admins can read/write, except the rules check implicitly uses exists())
-    match /admins/{userId} {
-      allow read: if isSignedIn() && request.auth.uid == userId;
-      allow write: if false; // Only manually added in console or by a separate secure process
-    }
+    // Removed admins collection as role is now in users collection
 
     // Validation - Article
     function isValidArticle(data) {

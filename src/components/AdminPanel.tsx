@@ -147,7 +147,7 @@ export function AdminPanel() {
   };
 
   const handleMultiImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || []) as File[];
     if (!files.length) return;
 
     files.forEach(file => {
